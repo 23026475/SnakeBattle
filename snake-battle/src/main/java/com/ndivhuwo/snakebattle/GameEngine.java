@@ -34,6 +34,17 @@ public class GameEngine {
                 snake.move(Direction.UP, true); // grow one extra step
                 state.removeFood(snake.head());
             }
+
+            // Check collisions with other snakes (snake eating)
+            for (Snake other : snakes) {
+                if (other == snake || !other.isAlive()) continue;
+
+                if (other.body().contains(snake.head())) {
+                    snake.kill();  // the moving snake dies
+                    System.out.println("A snake was eaten at " + snake.head());
+                    break;
+                }
+            }
         }
     }
 
