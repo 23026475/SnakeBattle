@@ -7,11 +7,16 @@ public class GameEngine {
     private final GameState state;
     private final List<Snake> snakes;
     private final List<SnakeAI> ais;
+    private final int foodSpawnRate; // how many new food pieces per step
+    private final int maxFood;       // optional: limit total food
 
-    public GameEngine(GameState state, List<Snake> snakes, List<SnakeAI> ais) {
+
+    public GameEngine(GameState state, List<Snake> snakes, List<SnakeAI> ais, int foodSpawnRate, int maxFood) {
         this.state = state;
         this.snakes = snakes;
         this.ais = ais;
+        this.foodSpawnRate = foodSpawnRate;
+        this.maxFood = maxFood;
     }
 
     public void step() {
@@ -43,6 +48,31 @@ public class GameEngine {
                     snake.kill();  // the moving snake dies
                     System.out.println("A snake was eaten at " + snake.head());
                     break;
+                }
+            }
+        }
+
+        // --- Spawn new food dynamically ---
+        int foodSpawnRate = 1; // number of new food per step
+        int maxFood = 5;       // maximum total food on the grid
+
+        while (state.foodPositions().size() < maxFood) {
+            for (int f = 0; f < foodSpawnRate; f++) {
+                int x = (int) (Math.random() * state.width());
+                int y = (int) (Math.random() * state.height());
+                Position p = new Position(x, y);
+
+                // Only add food if no snake occupies the position
+                boolean occupied = false;
+                for (Snake s : snakes) {
+                    if (s.isAlive() && s.body().contains(p)) {
+                        occupied = true;
+                        break;
+                    }
+                }
+
+                if (!occupied) {
+                    state.addFood(p);
                 }
             }
         }
