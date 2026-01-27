@@ -20,6 +20,7 @@ public class GameEngine {
     }
 
     public void step() {
+        // 1️⃣ Move snakes and check walls / food / eating other snakes
         for (int i = 0; i < snakes.size(); i++) {
             Snake snake = snakes.get(i);
             SnakeAI ai = ais.get(i);
@@ -40,21 +41,38 @@ public class GameEngine {
                 state.removeFood(snake.head());
             }
 
-            // Check collisions with other snakes (snake eating)
+            // Check collisions with other snakes' bodies
             for (Snake other : snakes) {
                 if (other == snake || !other.isAlive()) continue;
 
                 if (other.body().contains(snake.head())) {
-                    snake.kill();  // the moving snake dies
+                    snake.kill();
                     System.out.println("A snake was eaten at " + snake.head());
                     break;
                 }
             }
         }
 
-        // --- Spawn new food dynamically ---
-        int foodSpawnRate = 1; // number of new food per step
-        int maxFood = 5;       // maximum total food on the grid
+        // 2️⃣ Head-on collisions
+        for (int i = 0; i < snakes.size(); i++) {
+            Snake s1 = snakes.get(i);
+            if (!s1.isAlive()) continue;
+
+            for (int j = i + 1; j < snakes.size(); j++) {
+                Snake s2 = snakes.get(j);
+                if (!s2.isAlive()) continue;
+
+                if (s1.head().equals(s2.head())) {
+                    s1.kill();
+                    s2.kill();
+                    System.out.println("Head-on collision at " + s1.head() + " — both snakes died!");
+                }
+            }
+        }
+
+        // 3️⃣ Spawn new food dynamically
+        int foodSpawnRate = 1;
+        int maxFood = 5;
 
         while (state.foodPositions().size() < maxFood) {
             for (int f = 0; f < foodSpawnRate; f++) {
@@ -62,7 +80,6 @@ public class GameEngine {
                 int y = (int) (Math.random() * state.height());
                 Position p = new Position(x, y);
 
-                // Only add food if no snake occupies the position
                 boolean occupied = false;
                 for (Snake s : snakes) {
                     if (s.isAlive() && s.body().contains(p)) {
@@ -77,6 +94,7 @@ public class GameEngine {
             }
         }
     }
+
 
     public void render() {
         for (int y = 0; y < state.height(); y++) {
