@@ -1,7 +1,11 @@
-package com.ndivhuwo.snakebattle;
+package com.ndivhuwo.snakebattle.ai;
+
+import com.ndivhuwo.snakebattle.model.Direction;
+import com.ndivhuwo.snakebattle.model.Position;
+import com.ndivhuwo.snakebattle.model.Snake;
+import com.ndivhuwo.snakebattle.core.GameState;
 
 import java.util.Comparator;
-import java.util.List;
 
 public class GreedyAI implements SnakeAI {
 

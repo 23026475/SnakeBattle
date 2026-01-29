@@ -1,4 +1,4 @@
-package com.ndivhuwo.snakebattle;
+package com.ndivhuwo.snakebattle.model;
 
 import java.util.Deque;
 import java.util.LinkedList;

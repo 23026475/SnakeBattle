@@ -1,4 +1,8 @@
-package com.ndivhuwo.snakebattle;
+package com.ndivhuwo.snakebattle.ai;
+
+import com.ndivhuwo.snakebattle.core.GameState;
+import com.ndivhuwo.snakebattle.model.Direction;
+import com.ndivhuwo.snakebattle.model.Snake;
 
 public interface SnakeAI {
 

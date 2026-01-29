@@ -1,4 +1,6 @@
-package com.ndivhuwo.snakebattle;
+package com.ndivhuwo.snakebattle.core;
+
+import com.ndivhuwo.snakebattle.model.Position;
 
 import java.util.HashSet;
 import java.util.Set;

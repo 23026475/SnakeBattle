@@ -1,4 +1,4 @@
-package com.ndivhuwo.snakebattle;
+package com.ndivhuwo.snakebattle.model;
 
 public enum Direction {
     UP,

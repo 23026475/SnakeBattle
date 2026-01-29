@@ -1,4 +1,9 @@
-package com.ndivhuwo.snakebattle;
+package com.ndivhuwo.snakebattle.core;
+
+import com.ndivhuwo.snakebattle.ai.SnakeAI;
+import com.ndivhuwo.snakebattle.model.Direction;
+import com.ndivhuwo.snakebattle.model.Position;
+import com.ndivhuwo.snakebattle.model.Snake;
 
 import java.util.List;
 
