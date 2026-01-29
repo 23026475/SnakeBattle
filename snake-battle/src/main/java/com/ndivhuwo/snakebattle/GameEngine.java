@@ -7,11 +7,11 @@ public class GameEngine {
     private final GameState state;
     private final List<Snake> snakes;
     private final List<SnakeAI> ais;
-    private final int foodSpawnRate; // how many new food pieces per step
-    private final int maxFood;       // optional: limit total food
+    private final int foodSpawnRate;
+    private final int maxFood;
 
-
-    public GameEngine(GameState state, List<Snake> snakes, List<SnakeAI> ais, int foodSpawnRate, int maxFood) {
+    public GameEngine(GameState state, List<Snake> snakes, List<SnakeAI> ais,
+                      int foodSpawnRate, int maxFood) {
         this.state = state;
         this.snakes = snakes;
         this.ais = ais;
@@ -20,33 +20,40 @@ public class GameEngine {
     }
 
     public void step() {
-        // 1️⃣ Move snakes and check walls / food / eating other snakes
+
+        // 1️⃣ Move snakes + stats
         for (int i = 0; i < snakes.size(); i++) {
             Snake snake = snakes.get(i);
             SnakeAI ai = ais.get(i);
 
             if (!snake.isAlive()) continue;
 
+            // Track survival
+            snake.incrementTurnsSurvived();
+
             Direction move = ai.nextMove(state, snake);
             snake.move(move, false);
 
-            // Check collisions with walls
+            // Wall collision
             if (!state.isInsideGrid(snake.head())) {
                 snake.kill();
+                continue;
             }
 
-            // Check collisions with food
+            // Food collision
             if (state.hasFoodAt(snake.head())) {
-                snake.move(Direction.UP, true); // grow one extra step
+                snake.move(Direction.UP, true);
                 state.removeFood(snake.head());
+                snake.incrementFoodEaten();
             }
 
-            // Check collisions with other snakes' bodies
+            // Snake body collision
             for (Snake other : snakes) {
                 if (other == snake || !other.isAlive()) continue;
 
                 if (other.body().contains(snake.head())) {
                     snake.kill();
+                    other.incrementSnakesEaten();
                     System.out.println("A snake was eaten at " + snake.head());
                     break;
                 }
@@ -65,15 +72,14 @@ public class GameEngine {
                 if (s1.head().equals(s2.head())) {
                     s1.kill();
                     s2.kill();
-                    System.out.println("Head-on collision at " + s1.head() + " — both snakes died!");
+                    s1.incrementSnakesEaten();
+                    s2.incrementSnakesEaten();
+                    System.out.println("Head-on collision at " + s1.head());
                 }
             }
         }
 
-        // 3️⃣ Spawn new food dynamically
-        int foodSpawnRate = 1;
-        int maxFood = 5;
-
+        // 3️⃣ Dynamic food spawning
         while (state.foodPositions().size() < maxFood) {
             for (int f = 0; f < foodSpawnRate; f++) {
                 int x = (int) (Math.random() * state.width());
@@ -95,16 +101,14 @@ public class GameEngine {
         }
     }
 
-
     public void render() {
         for (int y = 0; y < state.height(); y++) {
             for (int x = 0; x < state.width(); x++) {
                 Position p = new Position(x, y);
                 boolean printed = false;
 
-                // Check snakes
                 for (Snake snake : snakes) {
-                    if (snake.body().contains(p) && snake.isAlive()) {
+                    if (snake.isAlive() && snake.body().contains(p)) {
                         System.out.print("S");
                         printed = true;
                         break;
@@ -112,15 +116,27 @@ public class GameEngine {
                 }
 
                 if (!printed) {
-                    if (state.hasFoodAt(p)) {
-                        System.out.print("F");
-                    } else {
-                        System.out.print(".");
-                    }
+                    System.out.print(state.hasFoodAt(p) ? "F" : ".");
                 }
             }
             System.out.println();
         }
         System.out.println();
+    }
+
+    public void printStats() {
+        System.out.println("=== Snake Stats ===");
+        for (int i = 0; i < snakes.size(); i++) {
+            Snake s = snakes.get(i);
+            System.out.printf(
+                    "Snake %d | Alive: %s | Turns: %d | Food: %d | Snakes Eaten: %d%n",
+                    i + 1,
+                    s.isAlive(),
+                    s.getTurnsSurvived(),
+                    s.getFoodEaten(),
+                    s.getSnakesEaten()
+            );
+        }
+        System.out.println("===================\n");
     }
 }
