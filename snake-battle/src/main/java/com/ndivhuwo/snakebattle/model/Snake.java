@@ -1,68 +1,61 @@
 package com.ndivhuwo.snakebattle.model;
 
-import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 
+/**
+ * Represents a snake in the game.
+ * Tracks its body positions, alive status, and provides movement logic.
+ */
 public class Snake {
 
-    private final Deque<Position> body = new LinkedList<>();
+    private final LinkedList<Position> body = new LinkedList<>();
     private boolean alive = true;
-    private int foodEaten = 0;
-    private int snakesEaten = 0;
-    private int turnsSurvived = 0;
 
-    public Snake(Position startPosition) {
-        body.addFirst(startPosition);
+    /**
+     * Creates a new snake with its head at the starting position.
+     */
+    public Snake(Position start) {
+        body.add(start);
     }
 
+    /**
+     * Moves the snake in the given direction.
+     * If grow is true, the tail is not removed (snake grows).
+     */
+    public void move(Direction dir, boolean grow) {
+        Position newHead = body.getFirst().move(dir);
+        body.addFirst(newHead);
+        if (!grow) {
+            body.removeLast();
+        }
+    }
+
+    /**
+     * Returns the current head position.
+     */
     public Position head() {
-        return body.peekFirst();
+        return body.getFirst();
     }
 
-    public Deque<Position> body() {
+    /**
+     * Returns the full body positions of the snake.
+     */
+    public List<Position> body() {
         return body;
     }
 
+    /**
+     * Returns whether the snake is alive.
+     */
     public boolean isAlive() {
         return alive;
     }
 
-    public void kill() {
-        this.alive = false;
-    }
-    public void incrementFoodEaten() {
-        foodEaten++;
-    }
-
-    public void incrementSnakesEaten() {
-        snakesEaten++;
-    }
-
-    public void incrementTurnsSurvived() {
-        turnsSurvived++;
-    }
-
-    public int getFoodEaten() {
-        return foodEaten;
-    }
-
-    public int getSnakesEaten() {
-        return snakesEaten;
-    }
-
-    public int getTurnsSurvived() {
-        return turnsSurvived;
-    }
     /**
-     * Moves the snake one step in the given direction.
-     * If grow is false, the tail is removed.
+     * Kills the snake.
      */
-    public void move(Direction direction, boolean grow) {
-        Position newHead = head().move(direction);
-        body.addFirst(newHead);
-
-        if (!grow) {
-            body.removeLast();
-        }
+    public void kill() {
+        alive = false;
     }
 }

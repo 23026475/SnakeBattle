@@ -1,52 +1,74 @@
 package com.ndivhuwo.snakebattle.core;
 
 import com.ndivhuwo.snakebattle.model.Position;
+import com.ndivhuwo.snakebattle.model.Snake;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+/**
+ * Represents the current state of the game:
+ * - The grid
+ * - Positions of food
+ * - All snakes
+ */
 public class GameState {
 
-    private final int width;
-    private final int height;
+    private final Grid grid;
+    private final Set<Position> food = new HashSet<>();
+    private final List<Snake> snakes;
 
-    private final Set<Position> foodPositions = new HashSet<>();
-
-    public GameState(int width, int height) {
-        this.width = width;
-        this.height = height;
+    public GameState(Grid grid, List<Snake> snakes) {
+        this.grid = grid;
+        this.snakes = snakes;
     }
 
-    public int width() {
-        return width;
+    public Grid grid() {
+        return grid;
     }
 
-    public int height() {
-        return height;
+    /**
+     * Checks if a position contains food.
+     */
+    public boolean hasFoodAt(Position p) {
+        return food.contains(p);
     }
 
+    /**
+     * Adds a food item at the given position.
+     */
+    public void addFood(Position p) {
+        food.add(p);
+    }
+
+    /**
+     * Removes a food item from the given position.
+     */
+    public void removeFood(Position p) {
+        food.remove(p);
+    }
+
+    /**
+     * Returns all current food positions.
+     */
     public Set<Position> foodPositions() {
-        return foodPositions;
+        return food;
     }
 
-    public boolean isInsideGrid(Position position) {
-        return position.x() >= 0 &&
-                position.y() >= 0 &&
-                position.x() < width &&
-                position.y() < height;
+    /**
+     * Returns true if any snake occupies this position.
+     */
+    public boolean isOccupied(Position p) {
+        return snakes.stream()
+                .filter(Snake::isAlive)
+                .anyMatch(s -> s.body().contains(p));
     }
 
-    public boolean hasFoodAt(Position position) {
-        return foodPositions.contains(position);
-    }
-
-    public void addFood(Position position) {
-        if (isInsideGrid(position)) {
-            foodPositions.add(position);
-        }
-    }
-
-    public void removeFood(Position position) {
-        foodPositions.remove(position);
+    /**
+     * Returns the list of snakes in the game.
+     */
+    public List<Snake> snakes() {
+        return snakes;
     }
 }

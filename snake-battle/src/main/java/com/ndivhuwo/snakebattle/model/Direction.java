@@ -1,8 +1,19 @@
 package com.ndivhuwo.snakebattle.model;
 
 public enum Direction {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT
+    UP(0, -1),
+    DOWN(0, 1),
+    LEFT(-1, 0),
+    RIGHT(1, 0);
+
+    private final int dx;
+    private final int dy;
+
+    Direction(int dx, int dy) {
+        this.dx = dx;
+        this.dy = dy;
+    }
+
+    public int dx() { return dx; }
+    public int dy() { return dy; }
 }

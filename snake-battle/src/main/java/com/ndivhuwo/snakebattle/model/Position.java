@@ -2,50 +2,28 @@ package com.ndivhuwo.snakebattle.model;
 
 import java.util.Objects;
 
-public class Position {
-    private final int x;
-    private final int y;
-
-    public Position(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-
-    public int x() {
-        return x;
-    }
-
-    public int y() {
-        return y;
-    }
+/**
+ * Immutable coordinate on the grid.
+ * Used by Snake, Grid, GameState, and AI to represent locations.
+ */
+public record Position(int x, int y) {
 
     /**
-     * Returns a new Position after moving one step in the given direction.
-     * Original Position is NOT modified (immutability).
+     * Returns a new Position moved by a given direction.
      */
-    public Position move(Direction direction) {
-        return switch (direction) {
-            case UP -> new Position(x, y - 1);
-            case DOWN -> new Position(x, y + 1);
-            case LEFT -> new Position(x - 1, y);
-            case RIGHT -> new Position(x + 1, y);
-        };
+    public Position move(Direction d) {
+        return new Position(x + d.dx(), y + d.dy());
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Position position)) return false;
-        return x == position.x && y == position.y;
+        if (!(o instanceof Position p)) return false;
+        return x == p.x && y == p.y;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(x, y);
-    }
-
-    @Override
-    public String toString() {
-        return "(" + x + ", " + y + ")";
     }
 }
