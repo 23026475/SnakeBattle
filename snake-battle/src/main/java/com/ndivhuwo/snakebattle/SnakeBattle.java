@@ -1,52 +1,52 @@
 package com.ndivhuwo.snakebattle;
 
-import com.ndivhuwo.snakebattle.core.*;
-import com.ndivhuwo.snakebattle.model.*;
-import com.ndivhuwo.snakebattle.ai.*;
+import com.ndivhuwo.snakebattle.core.GameEngine;
+import com.ndivhuwo.snakebattle.core.GameState;
+import com.ndivhuwo.snakebattle.core.Grid;
+import com.ndivhuwo.snakebattle.model.Position;
+import com.ndivhuwo.snakebattle.model.Snake;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Phase One console demo: runs a simple snake battle with RandomAI
+ * Main class to test Phase One: all AI snakes compete on the grid.
  */
 public class SnakeBattle {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
-        // 1️⃣ Create a 10x10 grid
+        // 1️⃣ Create a grid
         Grid grid = new Grid(10, 10);
 
-        // 2️⃣ Create two snakes at different positions
-        Snake snake1 = new Snake(new Position(2, 2));
-        Snake snake2 = new Snake(new Position(7, 7));
-        List<Snake> snakes = List.of(snake1, snake2);
+        // 2️⃣ Spawn snakes at different positions
+        List<Snake> snakes = List.of(
+                new Snake(new Position(1, 1)),
+                new Snake(new Position(8, 1)),
+                new Snake(new Position(1, 8)),
+                new Snake(new Position(8, 8)),
+                new Snake(new Position(4, 4)),
+                new Snake(new Position(5, 5))
+        );
 
-        // 3️⃣ Create the GameState
+        // 3️⃣ Create the game state
         GameState state = new GameState(grid, snakes);
 
-        // 4️⃣ Add some initial food
-        state.addFood(new Position(5, 5));
-        state.addFood(new Position(3, 8));
+        // 4️⃣ Create the engine (AI list initialized internally)
+        GameEngine engine = new GameEngine(state, snakes);
 
-        // 5️⃣ Create RandomAI for each snake
-        List<SnakeAI> ais = new ArrayList<>();
-        for (int i = 0; i < snakes.size(); i++) {
-            ais.add(new RandomAI());
-        }
+        // 5️⃣ Run the game for a fixed number of steps
+        int totalSteps = 50;
 
-        // 6️⃣ Create the game engine
-        GameEngine engine = new GameEngine(state, snakes, ais);
-
-        // 7️⃣ Run game loop for 20 steps
-        for (int step = 0; step < 20; step++) {
+        for (int step = 1; step <= totalSteps; step++) {
             System.out.println("Step " + step);
-            engine.render();  // show current state
-            engine.step();    // advance one step
+            engine.step();
+            engine.render();
+            engine.printStats();
 
-            Thread.sleep(500); // wait half a second for console readability
+            // Optional: pause for readability
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
         }
-
-        System.out.println("Game Over!");
+        engine.printStats();
+        System.out.println("Simulation finished!");
     }
 }
