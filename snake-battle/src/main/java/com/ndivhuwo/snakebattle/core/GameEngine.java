@@ -46,6 +46,9 @@ public class GameEngine {
             stats.add(new SnakeStats(s));
         }
     }
+    public GameState getGameState() {
+        return state;
+    }
 
     public void step() {
         // 1️⃣ Move snakes and check collisions
