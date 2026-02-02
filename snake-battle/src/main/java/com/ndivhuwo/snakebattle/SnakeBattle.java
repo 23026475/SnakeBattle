@@ -1,39 +1,25 @@
 package com.ndivhuwo.snakebattle;
 
-import com.ndivhuwo.snakebattle.core.GameEngine;
-import com.ndivhuwo.snakebattle.core.GameState;
-import com.ndivhuwo.snakebattle.core.Grid;
-import com.ndivhuwo.snakebattle.model.Direction;
-import com.ndivhuwo.snakebattle.model.Position;
-import com.ndivhuwo.snakebattle.model.Snake;
-import com.ndivhuwo.snakebattle.ui.GameWindow;
-
-import javax.swing.SwingUtilities;
-import java.util.ArrayList;
-import java.util.List;
+import javax.swing.*;
+import java.awt.*;
 
 public class SnakeBattle {
 
     public static void main(String[] args) {
+        JPanel redpanel = new JPanel();
+        JPanel bluepanel = new JPanel();
+        JPanel pinkpanel = new JPanel();
 
-        SwingUtilities.invokeLater(() -> {
+        redpanel.setBackground(Color.red);
+        redpanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        redpanel.setBounds(1, 1, 245,245);
 
-            // 1️⃣ Grid
-            Grid grid = new Grid(20, 20);
+        bluepanel.setBackground(Color.green);
+        bluepanel.setBorder(BorderFactory.createLineBorder(Color.white));
+        bluepanel.setBounds(0, 245, 245, 245);
 
-            // 2️⃣ Snakes
-            List<Snake> snakes = new ArrayList<>();
-            snakes.add(new Snake(new Position(5, 5)));
-            snakes.add(new Snake(new Position(10, 10)));
-
-            // 3️⃣ GameState
-            GameState state = new GameState(grid, snakes);
-
-            // 4️⃣ GameEngine
-            GameEngine engine = new GameEngine(state, snakes);
-
-            // 5️⃣ GameWindow
-            new GameWindow(engine);
-        });
+        pinkpanel.setBackground(Color.pink);
+        pinkpanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        pinkpanel.setBounds(0, 245, 245, 245);
     }
 }
