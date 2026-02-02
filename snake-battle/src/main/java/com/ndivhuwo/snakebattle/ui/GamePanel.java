@@ -51,11 +51,13 @@ public class GamePanel extends JPanel implements ActionListener {
         for(int i =0; i < ScreenHeight/UnitSize; i++){
             g.drawLine(i*UnitSize,0,i*UnitSize,ScreenHeight);
             g.drawLine(0,i*UnitSize,ScreenWidth,i*UnitSize);
-
         }
+        g.setColor(Color.white);
+        g.fillOval(foodX,foodY,UnitSize,UnitSize);
     }
     public void newFood(){
-
+        foodX = random.nextInt(ScreenWidth/UnitSize)*UnitSize;
+        foodY = random.nextInt(ScreenHeight/UnitSize)*UnitSize;
     }
     public void move(){
 
