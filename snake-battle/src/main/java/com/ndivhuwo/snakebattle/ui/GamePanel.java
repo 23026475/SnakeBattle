@@ -141,7 +141,36 @@ public class GamePanel extends JPanel implements ActionListener {
         g.setFont(new Font("Ink Free", Font.BOLD, 75));
         FontMetrics fm = getFontMetrics(g.getFont());
         g.drawString("Game Over", (ScreenWidth - fm.stringWidth("Game Over"))/2,ScreenHeight/2);
+
+        //reset
+        g.setFont(new Font("Ink Free", Font.BOLD, 30));
+        FontMetrics fm2 = getFontMetrics(g.getFont());
+        g.drawString(
+                "Press R to Replay",
+                (ScreenWidth - fm2.stringWidth("Press R to Replay")) / 2,
+                ScreenHeight / 2 + 50
+        );
+
     }
+    public void resetGame() {
+        bodyParts = 6;
+        foodEaten = 0;
+        direction = 'R';
+
+        // Reset snake position (center of screen)
+        int startX = ScreenWidth / 2;
+        int startY = ScreenHeight / 2;
+
+        for (int i = 0; i < bodyParts; i++) {
+            x[i] = startX - (i * UnitSize);
+            y[i] = startY;
+        }
+
+        newFood();
+        running = true;
+        timer.start();
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if(running){
@@ -154,6 +183,11 @@ public class GamePanel extends JPanel implements ActionListener {
     public class MyKeyAdapter extends KeyAdapter {
 
         public void keyPressed(KeyEvent e) {
+            if (!running && e.getKeyCode() == KeyEvent.VK_R) {
+                resetGame();
+                return;
+            }
+
             switch(e.getKeyCode()){
                 case KeyEvent.VK_LEFT:
                     if(direction != 'R'){
