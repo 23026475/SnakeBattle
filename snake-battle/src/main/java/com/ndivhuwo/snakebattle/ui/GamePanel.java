@@ -104,9 +104,10 @@ public class GamePanel extends JPanel implements ActionListener {
     }
     public void checkCollisions(){
         //checks head body collision
-        for(int i = bodyParts; i >0; i--){
+        for(int i = bodyParts-1; i >0; i--){
             if((x[0] == x[i]) && (y[0] == y[i])){
                 running = false;
+                break;
             }
         }
         //check if head touches left and top border
@@ -117,10 +118,11 @@ public class GamePanel extends JPanel implements ActionListener {
             running = false;
         }
         //check if head touches right and bottom border
-        if(x[0]>ScreenWidth){
+        if (x[0] < 0 || x[0] >= ScreenWidth) {
             running = false;
         }
-        if(y[0]>ScreenHeight){
+
+        if (y[0] < 0 || y[0] >= ScreenHeight) {
             running = false;
         }
         if(!running){
