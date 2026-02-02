@@ -54,13 +54,37 @@ public class GamePanel extends JPanel implements ActionListener {
         }
         g.setColor(Color.white);
         g.fillOval(foodX,foodY,UnitSize,UnitSize);
+
+        for(int i = 0; i < bodyParts; i++){
+            if(i == 0){
+                g.setColor(Color.MAGENTA);
+                g.fillOval(x[i],y[i],UnitSize,UnitSize);
+            }
+            else{
+                g.setColor(Color.MAGENTA);
+                g.fillRect(x[i],y[i],UnitSize,UnitSize);
+            }
+        }
     }
     public void newFood(){
         foodX = random.nextInt(ScreenWidth/UnitSize)*UnitSize;
         foodY = random.nextInt(ScreenHeight/UnitSize)*UnitSize;
     }
     public void move(){
-
+        for(int i =bodyParts-1; i >0; i--){
+            x[i] = x[i-1];
+            y[i] = y[i-1];
+        }
+        switch(direction){
+            case 'U': y[0] = y[0] - UnitSize;
+                break;
+            case 'D': y[0] = y[0] + UnitSize;
+                break;
+            case 'L': x[0] = x[0] - UnitSize;
+                break;
+            case 'R': x[0] = x[0] + UnitSize;
+                break;
+        }
     }
     public void checkFood(){
 
@@ -73,7 +97,12 @@ public class GamePanel extends JPanel implements ActionListener {
     }
     @Override
     public void actionPerformed(ActionEvent e) {
-
+        if(running){
+            move();
+            checkFood();
+            checkCollisions();
+        }
+        repaint();
     }
     public class MyKeyAdapter extends KeyAdapter {
 
