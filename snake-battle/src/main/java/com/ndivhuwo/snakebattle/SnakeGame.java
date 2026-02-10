@@ -2,9 +2,9 @@ package com.ndivhuwo.snakebattle;
 
 import javax.swing.JFrame;
 
-public class SnakeBattle extends JFrame {
+public class SnakeGame extends JFrame {
 
-    public SnakeBattle() {
+    public SnakeGame() {
         initUI();
     }
 
@@ -20,7 +20,7 @@ public class SnakeBattle extends JFrame {
 
     public static void main(String[] args) {
         java.awt.EventQueue.invokeLater(() -> {
-            JFrame game = new SnakeBattle();
+            JFrame game = new SnakeGame();
             game.setVisible(true);
         });
     }
