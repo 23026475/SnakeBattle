@@ -4,6 +4,8 @@ A Java-based interactive Snake game that visualizes classical
 pathfinding algorithms in real time --- and allows them to compete in an
 AI battle arena.
 
+Screenshorts of game at: [snake-battle/screenshoots](https://github.com/23026475/SnakeBattle/tree/main/snake-battle/screenshoots)
+
 This project combines: - 🎮 Classic Snake gameplay\
 - 🔍 Algorithm visualization\
 - ⚔️ AI vs AI competition\
@@ -146,4 +148,4 @@ MIT License
 ## 👨‍💻 Author
 
 Ndivhuwo Neswiswi\
-GitHub: https://github.com/NdivhuwoNeswiswi
+GitHub: https://github.com/23026475/snake-battle/screenshoots
