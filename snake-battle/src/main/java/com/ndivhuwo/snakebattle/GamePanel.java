@@ -64,6 +64,9 @@ public class GamePanel extends JPanel implements ActionListener {
         // Initialize DFS visualizer
         dfsVisualizer = new DFSVisualizer(this);
     }
+    public boolean isGameRunning() {
+        return running;
+    }
 
     private void initSnake() {
         // Start snake in the middle
@@ -151,23 +154,88 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void drawDFSVisualization(Graphics g) {
-        if (dfsVisualizer != null) {
-            // Draw visited cells
-            for (Point cell : dfsVisualizer.getVisitedCells()) {
-                g.setColor(new Color(30, 30, 150, 100));
+        if (dfsVisualizer != null && gameMode.equals("DFS")) {
+
+            // DEBUG: Print visited cells info
+            dfsVisualizer.debugVisitedCells();
+            // Draw visited cells first (as background)
+            java.util.List<java.awt.Point> visitedCells = dfsVisualizer.getVisitedCells();
+
+            // Draw each visited cell with a blue color
+            for (java.awt.Point cell : visitedCells) {
+                // Draw visited cell with solid blue
+                g.setColor(new Color(30, 30, 180, 150)); // Less transparent
                 g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+
+                // Draw border for visited cells
+                g.setColor(new Color(50, 50, 220));
+                g.drawRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
             }
 
-            // Draw current path
-            java.util.Stack<Point> path = dfsVisualizer.getCurrentPath();
+            // Draw current DFS exploration path on top
+            java.util.Stack<java.awt.Point> path = dfsVisualizer.getCurrentPath();
             if (!path.isEmpty()) {
-                for (Point cell : path) {
-                    g.setColor(new Color(0, 200, 0, 150));
+                // Draw the path with a brighter green
+                for (java.awt.Point cell : path) {
+                    // Skip if this cell was already drawn as visited (optional)
+                    g.setColor(new Color(0, 220, 0, 200)); // Bright green
                     g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+
+                    // Draw border for path cells
+                    g.setColor(new Color(0, 255, 0));
+                    g.drawRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
                 }
+
+                // Draw path direction indicators (optional)
+                g.setColor(Color.YELLOW);
+                for (int i = 0; i < path.size() - 1; i++) {
+                    java.awt.Point current = path.get(i);
+                    java.awt.Point next = path.get(i + 1);
+
+                    int centerX = current.x * UNIT_SIZE + UNIT_SIZE / 2;
+                    int centerY = current.y * UNIT_SIZE + UNIT_SIZE / 2;
+                    int nextCenterX = next.x * UNIT_SIZE + UNIT_SIZE / 2;
+                    int nextCenterY = next.y * UNIT_SIZE + UNIT_SIZE / 2;
+
+                    // Draw arrow from current to next
+                    g.drawLine(centerX, centerY, nextCenterX, nextCenterY);
+
+                    // Draw arrowhead
+                    drawArrowHead(g, centerX, centerY, nextCenterX, nextCenterY);
+                }
+            }
+
+            // Draw apple position with special marker for DFS mode
+            g.setColor(Color.RED);
+            g.fillOval(appleX, appleY, UNIT_SIZE, UNIT_SIZE);
+
+            // Draw target marker around apple
+            g.setColor(new Color(255, 100, 100, 100));
+            for (int i = 0; i < 3; i++) {
+                int size = UNIT_SIZE + i * 4;
+                int offset = (UNIT_SIZE - size) / 2;
+                g.drawOval(appleX + offset, appleY + offset, size, size);
             }
         }
     }
+
+    // Helper method to draw arrow heads
+    private void drawArrowHead(Graphics g, int x1, int y1, int x2, int y2) {
+        double angle = Math.atan2(y2 - y1, x2 - x1);
+        int arrowSize = 4;
+
+        int x3 = (int)(x2 - arrowSize * Math.cos(angle - Math.PI / 6));
+        int y3 = (int)(y2 - arrowSize * Math.sin(angle - Math.PI / 6));
+        int x4 = (int)(x2 - arrowSize * Math.cos(angle + Math.PI / 6));
+        int y4 = (int)(y2 - arrowSize * Math.sin(angle + Math.PI / 6));
+
+        g.fillPolygon(
+                new int[]{x2, x3, x4},
+                new int[]{y2, y3, y4},
+                3
+        );
+    }
+
 
     private void drawHUD(Graphics g) {
         g.setColor(Color.WHITE);
@@ -257,20 +325,36 @@ public class GamePanel extends JPanel implements ActionListener {
         }
     }
 
-    public void moveTo(Point gridPoint) {
+    public boolean moveTo(Point gridPoint) {
         int targetX = gridPoint.x * UNIT_SIZE;
         int targetY = gridPoint.y * UNIT_SIZE;
 
-        // Determine direction based on current head position
+        // Store current head position
         int headX = x[0];
         int headY = y[0];
 
-        if (targetX > headX) direction = 'R';
-        else if (targetX < headX) direction = 'L';
-        else if (targetY > headY) direction = 'D';
-        else if (targetY < headY) direction = 'U';
+        // Calculate direction based on target
+        if (targetX > headX) {
+            direction = 'R';
+        } else if (targetX < headX) {
+            direction = 'L';
+        } else if (targetY > headY) {
+            direction = 'D';
+        } else if (targetY < headY) {
+            direction = 'U';
+        }
 
+        // Move the snake
         move();
+
+        // Check for apple and collisions after moving
+        checkApple();
+        checkCollisions();
+
+        // Repaint to show movement
+        repaint();
+
+        return running; // Return whether game is still running
     }
 
     public void checkApple() {
@@ -344,7 +428,7 @@ public class GamePanel extends JPanel implements ActionListener {
         if (timer != null) {
             timer.stop();
         }
-        if (gameMode.equals("DFS") && dfsVisualizer != null) {
+        if (dfsVisualizer != null) {
             dfsVisualizer.stop();
         }
 
@@ -353,11 +437,12 @@ public class GamePanel extends JPanel implements ActionListener {
         applesEaten = 0;
         direction = 'R';
         running = true;
+        gameStarted = true;
 
         initSnake();
         newApple();
 
-        // Restart timers
+        // Restart timers based on mode
         if (gameMode.equals("DFS")) {
             timer = new Timer(DFS_DELAY, this);
             dfsVisualizer.startDFS();
@@ -367,6 +452,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
         timer.start();
         requestFocusInWindow();
+        repaint();
     }
 
     // Getters for DFSVisualizer
