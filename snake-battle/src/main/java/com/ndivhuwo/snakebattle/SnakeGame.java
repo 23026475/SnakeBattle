@@ -2,6 +2,7 @@ package com.ndivhuwo.snakebattle;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 
 public class SnakeGame extends JFrame {
 
@@ -35,6 +36,11 @@ public class SnakeGame extends JFrame {
     }
 
     public void startGame(String mode) {
+        // Validate mode
+        if (!Arrays.asList("HUMAN", "DFS", "BFS", "ASTAR", "BATTLE").contains(mode)) {
+            mode = "HUMAN";
+        }
+
         gamePanel.setGameMode(mode);
         gamePanel.startGame();
         cardLayout.show(mainPanel, "GAME");

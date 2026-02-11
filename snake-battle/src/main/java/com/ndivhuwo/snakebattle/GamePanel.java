@@ -6,7 +6,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.Random;
+import java.util.*;
+import java.util.List;
+import java.util.Queue;
+import javax.swing.Timer;
 
 public class GamePanel extends JPanel implements ActionListener {
 
@@ -42,8 +45,13 @@ public class GamePanel extends JPanel implements ActionListener {
     private Timer timer;
     private Random random;
 
-    // DFS Visualization
+    // Algorithm visualizers
     private DFSVisualizer dfsVisualizer;
+    private BFSVisualizer bfsVisualizer;
+    private AStarVisualizer aStarVisualizer;
+
+    // Battle mode
+    private BattleManager battleManager;
 
     public GamePanel(SnakeGame parent) {
         this.parentFrame = parent;
@@ -61,9 +69,15 @@ public class GamePanel extends JPanel implements ActionListener {
         // Add key listener
         this.addKeyListener(new MyKeyAdapter());
 
-        // Initialize DFS visualizer
+        // Initialize algorithm visualizers
         dfsVisualizer = new DFSVisualizer(this);
+        bfsVisualizer = new BFSVisualizer(this);
+        aStarVisualizer = new AStarVisualizer(this);
+
+        // Initialize battle manager
+        battleManager = new BattleManager(this);
     }
+
     public boolean isGameRunning() {
         return running;
     }
@@ -96,21 +110,59 @@ public class GamePanel extends JPanel implements ActionListener {
         running = true;
         gameStarted = true;
 
-        initSnake();
-        newApple();
+        // Stop any existing algorithm
+        stopAllAlgorithms();
 
-        // Start timer based on mode
-        if (gameMode.equals("DFS")) {
-            timer = new Timer(DFS_DELAY, this);
-            dfsVisualizer.startDFS();
-        } else {
-            timer = new Timer(DELAY, this);
+        // Stop any existing battle
+        if (battleManager != null) {
+            battleManager.stopBattle();
         }
 
-        timer.start();
-        requestFocusInWindow();
+        // Start appropriate mode
+        switch (gameMode) {
+            case "DFS":
+                initSnake();
+                newApple();
+                timer = new Timer(DFS_DELAY, this);
+                dfsVisualizer.startDFS();
+                break;
+            case "BFS":
+                initSnake();
+                newApple();
+                timer = new Timer(DFS_DELAY, this);
+                bfsVisualizer.startBFS();
+                break;
+            case "ASTAR":
+                initSnake();
+                newApple();
+                timer = new Timer(DFS_DELAY, this);
+                aStarVisualizer.startAStar();
+                break;
+            case "BATTLE":
+                // Battle mode doesn't use the regular snake
+                running = true;
+                battleManager.startBattle();
+                // No timer needed for battle mode
+                timer = null;
+                break;
+            default: // HUMAN
+                initSnake();
+                newApple();
+                timer = new Timer(DELAY, this);
+                break;
+        }
 
+        if (timer != null) {
+            timer.start();
+        }
+        requestFocusInWindow();
         System.out.println("Game started successfully");
+    }
+
+    private void stopAllAlgorithms() {
+        if (dfsVisualizer != null) dfsVisualizer.stop();
+        if (bfsVisualizer != null) bfsVisualizer.stop();
+        if (aStarVisualizer != null) aStarVisualizer.stop();
     }
 
     public void paintComponent(Graphics g) {
@@ -119,33 +171,61 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     public void draw(Graphics g) {
-        if (running) {
-            // Draw DFS visualization if in DFS mode
-            if (gameMode.equals("DFS")) {
-                drawDFSVisualization(g);
+        if (gameMode.equals("BATTLE")) {
+            drawBattle(g);
+        } else if (running) {
+            // Draw algorithm visualization if not in human mode
+            if (!gameMode.equals("HUMAN")) {
+                drawAlgorithmVisualization(g);
             }
 
             // Draw apple
             g.setColor(Color.RED);
             g.fillOval(appleX, appleY, UNIT_SIZE, UNIT_SIZE);
 
+            // Draw apple glow effect
+            g.setColor(new Color(255, 100, 100, 100));
+            g.fillOval(appleX - 5, appleY - 5, UNIT_SIZE + 10, UNIT_SIZE + 10);
+
             // Draw snake
             for (int i = 0; i < bodyParts; i++) {
                 if (i == 0) {
                     // Head of snake
                     g.setColor(Color.GREEN);
-                } else {
-                    // Body of snake
-                    g.setColor(new Color(45, 180, 0));
-                }
-                g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+                    g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
 
-                // Draw border around each segment
-                g.setColor(Color.BLACK);
-                g.drawRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+                    // Draw eyes
+                    g.setColor(Color.BLACK);
+                    if (direction == 'R') {
+                        g.fillRect(x[i] + UNIT_SIZE - 6, y[i] + 5, 4, 4);
+                        g.fillRect(x[i] + UNIT_SIZE - 6, y[i] + UNIT_SIZE - 9, 4, 4);
+                    } else if (direction == 'L') {
+                        g.fillRect(x[i] + 2, y[i] + 5, 4, 4);
+                        g.fillRect(x[i] + 2, y[i] + UNIT_SIZE - 9, 4, 4);
+                    } else if (direction == 'U') {
+                        g.fillRect(x[i] + 5, y[i] + 2, 4, 4);
+                        g.fillRect(x[i] + UNIT_SIZE - 9, y[i] + 2, 4, 4);
+                    } else if (direction == 'D') {
+                        g.fillRect(x[i] + 5, y[i] + UNIT_SIZE - 6, 4, 4);
+                        g.fillRect(x[i] + UNIT_SIZE - 9, y[i] + UNIT_SIZE - 6, 4, 4);
+                    }
+                } else {
+                    // Body of snake with gradient color
+                    Color bodyColor = new Color(
+                            0,
+                            150 + (i * 10) % 100,
+                            0
+                    );
+                    g.setColor(bodyColor);
+                    g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+
+                    // Body pattern
+                    g.setColor(new Color(0, 100, 0));
+                    g.drawRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+                }
             }
 
-            // Draw score
+            // Draw score and mode
             drawHUD(g);
 
         } else {
@@ -153,89 +233,418 @@ public class GamePanel extends JPanel implements ActionListener {
         }
     }
 
-    private void drawDFSVisualization(Graphics g) {
-        if (dfsVisualizer != null && gameMode.equals("DFS")) {
+    private void drawBattle(Graphics g) {
+        // Draw battle background
+        g.setColor(new Color(20, 20, 30));
+        g.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-            // DEBUG: Print visited cells info
-            dfsVisualizer.debugVisitedCells();
-            // Draw visited cells first (as background)
-            java.util.List<java.awt.Point> visitedCells = dfsVisualizer.getVisitedCells();
+        // Draw grid lines (optional)
+        g.setColor(new Color(50, 50, 70));
+        for (int i = 0; i <= GRID_WIDTH; i++) {
+            g.drawLine(i * UNIT_SIZE, 0, i * UNIT_SIZE, SCREEN_HEIGHT);
+        }
+        for (int i = 0; i <= GRID_HEIGHT; i++) {
+            g.drawLine(0, i * UNIT_SIZE, SCREEN_WIDTH, i * UNIT_SIZE);
+        }
 
-            // Draw each visited cell with a blue color
-            for (java.awt.Point cell : visitedCells) {
-                // Draw visited cell with solid blue
-                g.setColor(new Color(30, 30, 180, 150)); // Less transparent
-                g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
-
-                // Draw border for visited cells
-                g.setColor(new Color(50, 50, 220));
-                g.drawRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
-            }
-
-            // Draw current DFS exploration path on top
-            java.util.Stack<java.awt.Point> path = dfsVisualizer.getCurrentPath();
-            if (!path.isEmpty()) {
-                // Draw the path with a brighter green
-                for (java.awt.Point cell : path) {
-                    // Skip if this cell was already drawn as visited (optional)
-                    g.setColor(new Color(0, 220, 0, 200)); // Bright green
-                    g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
-
-                    // Draw border for path cells
-                    g.setColor(new Color(0, 255, 0));
-                    g.drawRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
-                }
-
-                // Draw path direction indicators (optional)
-                g.setColor(Color.YELLOW);
-                for (int i = 0; i < path.size() - 1; i++) {
-                    java.awt.Point current = path.get(i);
-                    java.awt.Point next = path.get(i + 1);
-
-                    int centerX = current.x * UNIT_SIZE + UNIT_SIZE / 2;
-                    int centerY = current.y * UNIT_SIZE + UNIT_SIZE / 2;
-                    int nextCenterX = next.x * UNIT_SIZE + UNIT_SIZE / 2;
-                    int nextCenterY = next.y * UNIT_SIZE + UNIT_SIZE / 2;
-
-                    // Draw arrow from current to next
-                    g.drawLine(centerX, centerY, nextCenterX, nextCenterY);
-
-                    // Draw arrowhead
-                    drawArrowHead(g, centerX, centerY, nextCenterX, nextCenterY);
-                }
-            }
-
-            // Draw apple position with special marker for DFS mode
+        // Draw food
+        Point food = battleManager.getFood();
+        if (food != null) {
             g.setColor(Color.RED);
-            g.fillOval(appleX, appleY, UNIT_SIZE, UNIT_SIZE);
+            g.fillOval(food.x * UNIT_SIZE, food.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
 
-            // Draw target marker around apple
+            // Draw food glow
             g.setColor(new Color(255, 100, 100, 100));
-            for (int i = 0; i < 3; i++) {
-                int size = UNIT_SIZE + i * 4;
-                int offset = (UNIT_SIZE - size) / 2;
-                g.drawOval(appleX + offset, appleY + offset, size, size);
+            g.fillOval(food.x * UNIT_SIZE - 5, food.y * UNIT_SIZE - 5, UNIT_SIZE + 10, UNIT_SIZE + 10);
+
+            // Draw target symbol
+            g.setColor(Color.YELLOW);
+            g.drawLine(food.x * UNIT_SIZE, food.y * UNIT_SIZE,
+                    food.x * UNIT_SIZE + UNIT_SIZE, food.y * UNIT_SIZE + UNIT_SIZE);
+            g.drawLine(food.x * UNIT_SIZE + UNIT_SIZE, food.y * UNIT_SIZE,
+                    food.x * UNIT_SIZE, food.y * UNIT_SIZE + UNIT_SIZE);
+        }
+
+        // Draw snakes
+        for (BattleSnake snake : battleManager.getSnakes()) {
+            if (snake.isAlive()) {
+                drawBattleSnake(g, snake);
+            } else {
+                drawDeadSnake(g, snake);
+            }
+        }
+
+        // Draw battle HUD
+        drawBattleHUD(g);
+
+        // If battle is over, show results
+        if (!battleManager.isBattleRunning()) {
+            drawBattleResults(g);
+        }
+    }
+
+    private void drawBattleSnake(Graphics g, BattleSnake snake) {
+        Color snakeColor = snake.getColor();
+        List<Point> body = snake.getBody();
+
+        // Draw snake body
+        for (int i = 0; i < body.size(); i++) {
+            Point segment = body.get(i);
+
+            if (i == 0) {
+                // Draw head with gradient
+                g.setColor(snakeColor.brighter());
+                g.fillRect(segment.x * UNIT_SIZE, segment.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+
+                // Draw head border
+                g.setColor(snakeColor.darker());
+                g.drawRect(segment.x * UNIT_SIZE, segment.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+
+                // Draw algorithm initial on head
+                g.setColor(Color.WHITE);
+                g.setFont(new Font("Arial", Font.BOLD, 12));
+                String initial = snake.getAlgorithm().substring(0, 1);
+                FontMetrics fm = g.getFontMetrics();
+                int textX = segment.x * UNIT_SIZE + (UNIT_SIZE - fm.stringWidth(initial)) / 2;
+                int textY = segment.y * UNIT_SIZE + (UNIT_SIZE + fm.getAscent()) / 2 - 2;
+                g.drawString(initial, textX, textY);
+            } else {
+                // Draw body segments with gradient
+                Color segmentColor = new Color(
+                        Math.max(0, snakeColor.getRed() - i * 5),
+                        Math.max(0, snakeColor.getGreen() - i * 5),
+                        Math.max(0, snakeColor.getBlue() - i * 5)
+                );
+                g.setColor(segmentColor);
+                g.fillRect(segment.x * UNIT_SIZE, segment.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+
+                // Draw segment border
+                g.setColor(segmentColor.darker());
+                g.drawRect(segment.x * UNIT_SIZE, segment.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
             }
         }
     }
 
-    // Helper method to draw arrow heads
-    private void drawArrowHead(Graphics g, int x1, int y1, int x2, int y2) {
-        double angle = Math.atan2(y2 - y1, x2 - x1);
-        int arrowSize = 4;
+    private void drawDeadSnake(Graphics g, BattleSnake snake) {
+        Color deadColor = new Color(100, 100, 100, 150); // Gray, semi-transparent
+        List<Point> body = snake.getBody();
 
-        int x3 = (int)(x2 - arrowSize * Math.cos(angle - Math.PI / 6));
-        int y3 = (int)(y2 - arrowSize * Math.sin(angle - Math.PI / 6));
-        int x4 = (int)(x2 - arrowSize * Math.cos(angle + Math.PI / 6));
-        int y4 = (int)(y2 - arrowSize * Math.sin(angle + Math.PI / 6));
+        for (Point segment : body) {
+            g.setColor(deadColor);
+            g.fillRect(segment.x * UNIT_SIZE, segment.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
 
-        g.fillPolygon(
-                new int[]{x2, x3, x4},
-                new int[]{y2, y3, y4},
-                3
-        );
+            // Draw X mark on dead snake
+            g.setColor(Color.RED);
+            g.drawLine(segment.x * UNIT_SIZE, segment.y * UNIT_SIZE,
+                    segment.x * UNIT_SIZE + UNIT_SIZE, segment.y * UNIT_SIZE + UNIT_SIZE);
+            g.drawLine(segment.x * UNIT_SIZE + UNIT_SIZE, segment.y * UNIT_SIZE,
+                    segment.x * UNIT_SIZE, segment.y * UNIT_SIZE + UNIT_SIZE);
+        }
     }
 
+    private void drawBattleHUD(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+
+        // Draw title
+        String title = "SNAKE BATTLE ARENA";
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(title, (SCREEN_WIDTH - fm.stringWidth(title)) / 2, 30);
+
+        // Draw round counter
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        String roundText = "Round: " + battleManager.getRound();
+        g.drawString(roundText, 10, 30);
+
+        // Draw alive count
+        String aliveText = "Alive: " + battleManager.getAliveCount() + "/3";
+        g.drawString(aliveText, SCREEN_WIDTH - fm.stringWidth(aliveText) - 10, 30);
+
+        // Draw snake scores
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        int yPos = 60;
+        for (BattleSnake snake : battleManager.getSnakes()) {
+            String status = snake.isAlive() ? "ALIVE" : "DEAD";
+            Color statusColor = snake.isAlive() ? Color.GREEN : Color.RED;
+
+            String scoreText = snake.getAlgorithm() + ": " + snake.getScore() + " pts - " + status;
+
+            g.setColor(snake.getColor());
+            g.drawString(scoreText, 10, yPos);
+
+            g.setColor(statusColor);
+            g.drawString(status, SCREEN_WIDTH - fm.stringWidth(status) - 10, yPos);
+
+            yPos += 25;
+        }
+
+        // Draw controls
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
+        g.drawString("SPACE: Restart Battle | ESC: Main Menu", 10, SCREEN_HEIGHT - 10);
+    }
+
+    private void drawBattleResults(Graphics g) {
+        // Semi-transparent overlay
+        g.setColor(new Color(0, 0, 0, 200));
+        g.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+        BattleSnake winner = battleManager.getWinner();
+
+        if (winner != null) {
+            // Winner announcement
+            g.setColor(winner.getColor());
+            g.setFont(new Font("Arial", Font.BOLD, 60));
+            String winnerText = winner.getAlgorithm() + " WINS!";
+            FontMetrics fm = g.getFontMetrics();
+            g.drawString(winnerText, (SCREEN_WIDTH - fm.stringWidth(winnerText)) / 2, SCREEN_HEIGHT / 2 - 50);
+
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 40));
+            String scoreText = "Score: " + winner.getScore();
+            fm = g.getFontMetrics();
+            g.drawString(scoreText, (SCREEN_WIDTH - fm.stringWidth(scoreText)) / 2, SCREEN_HEIGHT / 2 + 20);
+        } else {
+            // Draw match
+            g.setColor(Color.RED);
+            g.setFont(new Font("Arial", Font.BOLD, 60));
+            String drawText = "DRAW!";
+            FontMetrics fm = g.getFontMetrics();
+            g.drawString(drawText, (SCREEN_WIDTH - fm.stringWidth(drawText)) / 2, SCREEN_HEIGHT / 2 - 20);
+        }
+
+        // Final scores
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 30));
+        String finalText = "Final Scores:";
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(finalText, (SCREEN_WIDTH - fm.stringWidth(finalText)) / 2, SCREEN_HEIGHT / 2 + 80);
+
+        int yPos = SCREEN_HEIGHT / 2 + 130;
+        for (BattleSnake snake : battleManager.getSnakes()) {
+            g.setColor(snake.getColor());
+            String snakeScore = snake.getAlgorithm() + ": " + snake.getScore() + " points";
+            fm = g.getFontMetrics();
+            g.drawString(snakeScore, (SCREEN_WIDTH - fm.stringWidth(snakeScore)) / 2, yPos);
+            yPos += 40;
+        }
+
+        // Instructions
+        g.setColor(Color.YELLOW);
+        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        String restartText = "Press SPACE to restart battle";
+        fm = g.getFontMetrics();
+        g.drawString(restartText, (SCREEN_WIDTH - fm.stringWidth(restartText)) / 2, yPos + 40);
+
+        String menuText = "Press ESC for main menu";
+        fm = g.getFontMetrics();
+        g.drawString(menuText, (SCREEN_WIDTH - fm.stringWidth(menuText)) / 2, yPos + 80);
+    }
+
+    private void drawAlgorithmVisualization(Graphics g) {
+        if (!gameMode.equals("HUMAN")) {
+            Graphics2D g2d = (Graphics2D) g;
+            Composite originalComposite = g2d.getComposite();
+
+            // Set transparency for visualization
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+
+            switch (gameMode) {
+                case "DFS":
+                    drawDFSVisualization(g2d);
+                    break;
+                case "BFS":
+                    drawBFSVisualization(g2d);
+                    break;
+                case "ASTAR":
+                    drawAStarVisualization(g2d);
+                    break;
+            }
+
+            g2d.setComposite(originalComposite);
+        }
+    }
+
+    private void drawDFSVisualization(Graphics g) {
+        if (dfsVisualizer != null) {
+            // Draw visited cells
+            g.setColor(new Color(30, 30, 180)); // Blue for DFS
+            for (Point cell : dfsVisualizer.getVisitedCells()) {
+                g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+            }
+
+            // Draw current path
+            g.setColor(new Color(0, 220, 0)); // Green for current path
+            Stack<Point> path = dfsVisualizer.getCurrentPath();
+            for (Point cell : path) {
+                g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+            }
+        }
+    }
+
+    private void drawBFSVisualization(Graphics g) {
+        if (bfsVisualizer != null) {
+            // Draw visited cells
+            g.setColor(new Color(220, 220, 50)); // Yellow for BFS
+            for (Point cell : bfsVisualizer.getVisitedCells()) {
+                g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+            }
+
+            // Draw current node being processed
+            Point current = bfsVisualizer.getCurrentNode();
+            if (current != null) {
+                g.setColor(new Color(255, 100, 0)); // Orange for current node
+                g.fillRect(current.x * UNIT_SIZE, current.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+            }
+        }
+    }
+
+    private void drawAStarVisualization(Graphics g) {
+        if (aStarVisualizer != null) {
+            // Draw visited cells (closed set)
+            g.setColor(new Color(180, 50, 220)); // Purple for A* visited
+            for (Point cell : aStarVisualizer.getVisitedCells()) {
+                g.fillRect(cell.x * UNIT_SIZE, cell.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+            }
+
+            // Draw open set (nodes to be evaluated)
+            g.setColor(new Color(255, 150, 50)); // Orange for open set
+            // Use the getOpenSetPoints() method instead of accessing Node directly
+            for (Point point : aStarVisualizer.getOpenSetPoints()) {
+                g.fillRect(point.x * UNIT_SIZE, point.y * UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+            }
+        }
+    }
+
+    // Pathfinding helper methods
+    public boolean pathExistsToApple() {
+        return pathExists(getSnakeHead(), getApplePosition());
+    }
+
+    public boolean pathExists(Point start, Point goal) {
+        if (start.equals(goal)) return true;
+
+        boolean[][] visited = new boolean[GRID_WIDTH][GRID_HEIGHT];
+        Queue<Point> queue = new LinkedList<>();
+        queue.add(start);
+        visited[start.x][start.y] = true;
+
+        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+        while (!queue.isEmpty()) {
+            Point current = queue.poll();
+
+            if (current.equals(goal)) {
+                return true;
+            }
+
+            for (int[] dir : directions) {
+                int newX = current.x + dir[0];
+                int newY = current.y + dir[1];
+
+                if (newX >= 0 && newX < GRID_WIDTH &&
+                        newY >= 0 && newY < GRID_HEIGHT &&
+                        !visited[newX][newY] && isCellSafe(new Point(newX, newY))) {
+
+                    visited[newX][newY] = true;
+                    queue.add(new Point(newX, newY));
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public boolean canMoveAnywhere() {
+        Point head = getSnakeHead();
+        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+        for (int[] dir : directions) {
+            int newX = head.x + dir[0];
+            int newY = head.y + dir[1];
+
+            if (newX >= 0 && newX < GRID_WIDTH &&
+                    newY >= 0 && newY < GRID_HEIGHT &&
+                    isCellSafe(new Point(newX, newY))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean isSnakeTrapped() {
+        return !canMoveAnywhere();
+    }
+
+    private void placeSmartApple() {
+        int attempts = 0;
+        int maxAttempts = GRID_WIDTH * GRID_HEIGHT * 2;
+
+        do {
+            // Try random placement
+            boolean onSnake;
+            do {
+                onSnake = false;
+                appleX = random.nextInt(GRID_WIDTH) * UNIT_SIZE;
+                appleY = random.nextInt(GRID_HEIGHT) * UNIT_SIZE;
+
+                // Check if apple spawns on snake
+                for (int i = 0; i < bodyParts; i++) {
+                    if (x[i] == appleX && y[i] == appleY) {
+                        onSnake = true;
+                        break;
+                    }
+                }
+            } while (onSnake);
+
+            attempts++;
+
+            // If we can't find a good spot after many attempts, place anywhere safe
+            if (attempts >= maxAttempts) {
+                System.out.println("Could not find ideal apple spot, placing anywhere safe");
+                // Find any safe cell
+                for (int x = 0; x < GRID_WIDTH; x++) {
+                    for (int y = 0; y < GRID_HEIGHT; y++) {
+                        Point cell = new Point(x, y);
+                        if (isCellSafe(cell) && !cell.equals(getSnakeHead())) {
+                            appleX = x * UNIT_SIZE;
+                            appleY = y * UNIT_SIZE;
+                            return;
+                        }
+                    }
+                }
+                // If no safe cell, place randomly (game might end soon anyway)
+                break;
+            }
+        } while (!pathExistsToApple() || attempts < 10);
+
+        System.out.println("Placed apple at (" + (appleX/UNIT_SIZE) + ", " + (appleY/UNIT_SIZE) + ")");
+    }
+
+    // Single newApple method that handles both modes
+    public void newApple() {
+        if (gameMode.equals("HUMAN")) {
+            // For human mode, use random placement
+            boolean onSnake;
+            do {
+                onSnake = false;
+                appleX = random.nextInt(GRID_WIDTH) * UNIT_SIZE;
+                appleY = random.nextInt(GRID_HEIGHT) * UNIT_SIZE;
+
+                // Check if apple spawns on snake
+                for (int i = 0; i < bodyParts; i++) {
+                    if (x[i] == appleX && y[i] == appleY) {
+                        onSnake = true;
+                        break;
+                    }
+                }
+            } while (onSnake);
+        } else {
+            // For algorithm modes, use smart placement
+            placeSmartApple();
+        }
+    }
 
     private void drawHUD(Graphics g) {
         g.setColor(Color.WHITE);
@@ -248,20 +657,44 @@ public class GamePanel extends JPanel implements ActionListener {
         FontMetrics metrics = getFontMetrics(g.getFont());
         g.drawString(modeText, SCREEN_WIDTH - metrics.stringWidth(modeText) - 10, 25);
 
-        // Draw controls
+        // Draw algorithm info
         g.setFont(new Font("Arial", Font.PLAIN, 14));
-        if (gameMode.equals("HUMAN")) {
-            g.drawString("Arrow Keys: Move | SPACE: Restart | ESC: Menu", 10, SCREEN_HEIGHT - 10);
+        if (!gameMode.equals("HUMAN")) {
+            String algorithmInfo = "";
+            switch (gameMode) {
+                case "DFS": algorithmInfo = "DFS: Depth-First Search"; break;
+                case "BFS": algorithmInfo = "BFS: Breadth-First Search"; break;
+                case "ASTAR": algorithmInfo = "A*: A-Star Search"; break;
+            }
+            g.drawString(algorithmInfo, 10, SCREEN_HEIGHT - 50);
+
+            // Draw path existence status
+            if (!pathExistsToApple()) {
+                g.setColor(Color.RED);
+                g.drawString("NO PATH TO APPLE!", 10, SCREEN_HEIGHT - 30);
+                g.setColor(Color.WHITE);
+            }
         }
+
+        // Draw controls
+        g.drawString("SPACE: Restart | ESC: Menu", 10, SCREEN_HEIGHT - 10);
     }
 
     private void gameOver(Graphics g) {
+        // Determine game over reason
+        String reason;
+        if (isSnakeTrapped()) {
+            reason = "Snake Trapped Itself!";
+        } else {
+            reason = "Game Over";
+        }
+
         // Game Over text
         g.setColor(Color.RED);
         g.setFont(new Font("Arial", Font.BOLD, 75));
         FontMetrics metrics1 = getFontMetrics(g.getFont());
-        g.drawString("Game Over",
-                (SCREEN_WIDTH - metrics1.stringWidth("Game Over")) / 2,
+        g.drawString(reason,
+                (SCREEN_WIDTH - metrics1.stringWidth(reason)) / 2,
                 SCREEN_HEIGHT / 2 - 50);
 
         // Score text
@@ -282,23 +715,6 @@ public class GamePanel extends JPanel implements ActionListener {
         g.drawString("Press ESC for main menu",
                 (SCREEN_WIDTH - metrics3.stringWidth("Press ESC for main menu")) / 2,
                 SCREEN_HEIGHT / 2 + 110);
-    }
-
-    public void newApple() {
-        boolean onSnake;
-        do {
-            onSnake = false;
-            appleX = random.nextInt(GRID_WIDTH) * UNIT_SIZE;
-            appleY = random.nextInt(GRID_HEIGHT) * UNIT_SIZE;
-
-            // Check if apple spawns on snake
-            for (int i = 0; i < bodyParts; i++) {
-                if (x[i] == appleX && y[i] == appleY) {
-                    onSnake = true;
-                    break;
-                }
-            }
-        } while (onSnake);
     }
 
     public void move() {
@@ -363,9 +779,17 @@ public class GamePanel extends JPanel implements ActionListener {
             applesEaten++;
             newApple();
 
-            // If in DFS mode, restart DFS after eating apple
-            if (gameMode.equals("DFS")) {
-                dfsVisualizer.startDFS();
+            // Restart algorithm after eating apple
+            switch (gameMode) {
+                case "DFS":
+                    if (dfsVisualizer != null) dfsVisualizer.startDFS();
+                    break;
+                case "BFS":
+                    if (bfsVisualizer != null) bfsVisualizer.startBFS();
+                    break;
+                case "ASTAR":
+                    if (aStarVisualizer != null) aStarVisualizer.startAStar();
+                    break;
             }
         }
     }
@@ -376,6 +800,7 @@ public class GamePanel extends JPanel implements ActionListener {
             if ((x[0] == x[i]) && (y[0] == y[i])) {
                 running = false;
                 System.out.println("Collision with body at segment " + i);
+                return;
             }
         }
 
@@ -383,27 +808,36 @@ public class GamePanel extends JPanel implements ActionListener {
         if (x[0] < 0) {
             running = false;
             System.out.println("Hit left wall");
+            return;
         }
         if (x[0] >= SCREEN_WIDTH) {
             running = false;
             System.out.println("Hit right wall");
+            return;
         }
         if (y[0] < 0) {
             running = false;
             System.out.println("Hit top wall");
+            return;
         }
         if (y[0] >= SCREEN_HEIGHT) {
             running = false;
             System.out.println("Hit bottom wall");
+            return;
+        }
+
+        // Check if snake is trapped (only for algorithm modes)
+        if (!gameMode.equals("HUMAN") && isSnakeTrapped()) {
+            running = false;
+            System.out.println("Snake trapped itself! No possible moves.");
+            return;
         }
 
         if (!running) {
             if (timer != null) {
                 timer.stop();
             }
-            if (gameMode.equals("DFS") && dfsVisualizer != null) {
-                dfsVisualizer.stop();
-            }
+            stopAllAlgorithms();
             System.out.println("Game Over! Final Score: " + applesEaten);
         }
     }
@@ -416,7 +850,7 @@ public class GamePanel extends JPanel implements ActionListener {
                 checkApple();
                 checkCollisions();
             }
-            // In DFS mode, movement is handled by DFSVisualizer
+            // In algorithm modes, movement is handled by visualizers
             repaint();
         }
     }
@@ -424,12 +858,15 @@ public class GamePanel extends JPanel implements ActionListener {
     public void restartGame() {
         System.out.println("Restarting game...");
 
-        // Stop existing timers
+        // Stop existing timers and algorithms
         if (timer != null) {
             timer.stop();
         }
-        if (dfsVisualizer != null) {
-            dfsVisualizer.stop();
+        stopAllAlgorithms();
+
+        // Stop battle if running
+        if (battleManager != null) {
+            battleManager.stopBattle();
         }
 
         // Reset game state
@@ -439,23 +876,40 @@ public class GamePanel extends JPanel implements ActionListener {
         running = true;
         gameStarted = true;
 
-        initSnake();
-        newApple();
-
-        // Restart timers based on mode
-        if (gameMode.equals("DFS")) {
-            timer = new Timer(DFS_DELAY, this);
-            dfsVisualizer.startDFS();
+        // Start appropriate mode
+        if (gameMode.equals("BATTLE")) {
+            battleManager.startBattle();
         } else {
-            timer = new Timer(DELAY, this);
+            initSnake();
+            newApple();
+
+            // Restart appropriate algorithm
+            switch (gameMode) {
+                case "DFS":
+                    timer = new Timer(DFS_DELAY, this);
+                    dfsVisualizer.startDFS();
+                    break;
+                case "BFS":
+                    timer = new Timer(DFS_DELAY, this);
+                    bfsVisualizer.startBFS();
+                    break;
+                case "ASTAR":
+                    timer = new Timer(DFS_DELAY, this);
+                    aStarVisualizer.startAStar();
+                    break;
+                default: // HUMAN
+                    timer = new Timer(DELAY, this);
+                    break;
+            }
+
+            timer.start();
         }
 
-        timer.start();
         requestFocusInWindow();
         repaint();
     }
 
-    // Getters for DFSVisualizer
+    // Getters for visualizers
     public Point getSnakeHead() {
         return new Point(x[0] / UNIT_SIZE, y[0] / UNIT_SIZE);
     }
@@ -530,8 +984,9 @@ public class GamePanel extends JPanel implements ActionListener {
                     if (timer != null) {
                         timer.stop();
                     }
-                    if (gameMode.equals("DFS") && dfsVisualizer != null) {
-                        dfsVisualizer.stop();
+                    stopAllAlgorithms();
+                    if (battleManager != null) {
+                        battleManager.stopBattle();
                     }
                     parentFrame.showMenu();
                     break;

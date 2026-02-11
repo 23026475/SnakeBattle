@@ -61,6 +61,13 @@ public class DFSVisualizer {
             return;
         }
 
+        // Check if path exists before searching
+        if (!gamePanel.pathExistsToApple()) {
+            System.out.println("DFS: No path exists to apple! Snake is trapped.");
+            // Let the game handle the game over state
+            return;
+        }
+
         if (!isRunning || path.isEmpty()) {
             if (dfsTimer != null) {
                 dfsTimer.stop();
@@ -97,15 +104,21 @@ public class DFSVisualizer {
             path.pop();
         }
 
-        // If DFS gets completely stuck, restart with fresh search
+        // If DFS gets completely stuck, check if snake is trapped
         if (path.isEmpty()) {
-            System.out.println("DFS got stuck, restarting search...");
-            startDFS();
+            System.out.println("DFS: Exploration stack empty, checking if trapped...");
+            if (gamePanel.isSnakeTrapped()) {
+                System.out.println("DFS: Snake is trapped, ending game.");
+                // Game over will be detected in next iteration
+            } else {
+                System.out.println("DFS got stuck, restarting search...");
+                startDFS();
+            }
         }
 
-        // Repaint to show updated visualization
         gamePanel.repaint();
     }
+
     public void debugVisitedCells() {
         System.out.println("=== DFS Debug Info ===");
         System.out.println("Total visited cells: " + visitedCells.size());
